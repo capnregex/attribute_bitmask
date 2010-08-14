@@ -1,13 +1,32 @@
 AttributeBitmask
 ================
 
-Introduction goes here.
+Attribute Bitmask is designed to allow you to create accessor methods to access bitmask fields as if they were boolean attributes in the model. 
 
 
 Example
 =======
 
-Example goes here.
+Simply declare an existing integer column as a bitmask with its possible values.
 
+class User < ActiveRecord::Base
+  bitmask :roles, :writer, :publisher, :editor, :proofreader 
+end
 
-Copyright (c) 2010 [name of plugin creator], released under the MIT license
+You can then access the bitmask fields as if they were boolean columns.
+
+user = User.create(:name => "Bruce", :publisher => true, :editor => true)
+user.publisher? 
+# => true
+user.writer?
+# => false
+user.writer = true
+user.writer
+# => true
+user.writer?
+# => true
+
+user.roles
+# => 7
+
+Copyright (c) 2010 [Robert Ferney], released under the MIT license

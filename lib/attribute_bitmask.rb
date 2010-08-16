@@ -1,4 +1,8 @@
 module AttributeBitmask
+  def self.included(base)  
+    base.send :extend, ClassMethods 
+  end 
+
   module ClassMethods
     def bitmask attribute, *fields
       fields.each_with_index do |field,bit|
@@ -19,10 +23,35 @@ module AttributeBitmask
       bitmask_condition attribute, field, bit
     end
     def bitmask_reader attribute, field, bit
+      mask = 2 ** bit
+      self.module_eval <<-READER, __FILE__, __LINE__ + 1
+        def #{field}
+          v = #{attribute}
+          #{mask} & v == #{mask}
+        end
+      READER
     end
     def bitmask_writer attribute, field, bit
+      mask = 2 ** bit
+      self.module_eval <<-WRITER, __FILE__, __LINE__ + 1
+        def #{field}= v; 
+          case v 
+          when true,'true','1',1 
+            self.#{attribute} |= #{mask} 
+          else 
+            self.#{attribute} &= ~#{mask}
+          end
+        end
+      WRITER
     end
-    def bitmask_condion attribute, field, bit
+    def bitmask_condition attribute, field, bit
+      mask = 2 ** bit
+      self.module_eval <<-READER, __FILE__, __LINE__ + 1
+        def #{field}?
+          v = #{attribute}
+          #{mask} & v == v
+        end
+      READER
     end
     def bit_not_accessor attribute, field, bit
       bit_not_reader attribute, field, bit
@@ -30,10 +59,35 @@ module AttributeBitmask
       bit_not_condition attribute, field, bit
     end
     def bit_not_reader attribute, field, bit
+      mask = 2 ** bit
+      self.module_eval <<-READER, __FILE__, __LINE__ + 1
+        def #{field}
+          v = #{attribute}
+          #{mask} & v == 0
+        end
+      READER
     end
     def bit_not_writer attribute, field, bit
+      mask = 2 ** bit
+      self.module_eval <<-WRITER, __FILE__, __LINE__ + 1
+        def #{field}= v; 
+          case v 
+          when true,'true','1',1 
+            self.#{attribute} &= ~#{mask}
+          else 
+            self.#{attribute} |= #{mask} 
+          end
+        end
+      WRITER
     end
     def bit_not_condion attribute, field, bit
+      mask = 2 ** bit
+      self.module_eval <<-READER, __FILE__, __LINE__ + 1
+        def #{field}?
+          v = #{attribute}
+          #{mask} & v == 0
+        end
+      READER
     end
     def bits_accessor attribute, field, bit, bits
       bits_reader attribute, field, bit, bits
@@ -47,4 +101,6 @@ module AttributeBitmask
     def bits_condion attribute, field, bit, bits
     end
   end
+
 end
+ActiveRecord::Base.send :include, AttributeBitmask

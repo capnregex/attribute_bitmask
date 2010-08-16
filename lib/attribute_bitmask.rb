@@ -4,6 +4,7 @@ module AttributeBitmask
   end 
 
   module ClassMethods
+
     def bitmask attribute, *fields
       fields.each_with_index do |field,bit|
         case field
@@ -17,6 +18,7 @@ module AttributeBitmask
         end
       end
     end
+
     def bitmask_accessor attribute, field, bit
       bitmask_reader attribute, field, bit
       bitmask_writer attribute, field, bit
@@ -26,8 +28,7 @@ module AttributeBitmask
       mask = 2 ** bit
       self.module_eval <<-READER, __FILE__, __LINE__ + 1
         def #{field}
-          v = #{attribute}
-          #{mask} & v == #{mask}
+          #{mask} & #{attribute} == #{mask}
         end
       READER
     end
@@ -48,11 +49,11 @@ module AttributeBitmask
       mask = 2 ** bit
       self.module_eval <<-READER, __FILE__, __LINE__ + 1
         def #{field}?
-          v = #{attribute}
-          #{mask} & v == v
+          #{mask} & #{attribute} == #{mask}
         end
       READER
     end
+
     def bit_not_accessor attribute, field, bit
       bit_not_reader attribute, field, bit
       bit_not_writer attribute, field, bit
@@ -62,8 +63,7 @@ module AttributeBitmask
       mask = 2 ** bit
       self.module_eval <<-READER, __FILE__, __LINE__ + 1
         def #{field}
-          v = #{attribute}
-          #{mask} & v == 0
+          #{mask} & #{attribute} == 0
         end
       READER
     end
@@ -80,26 +80,53 @@ module AttributeBitmask
         end
       WRITER
     end
-    def bit_not_condion attribute, field, bit
+    def bit_not_condition attribute, field, bit
       mask = 2 ** bit
       self.module_eval <<-READER, __FILE__, __LINE__ + 1
         def #{field}?
-          v = #{attribute}
-          #{mask} & v == 0
+          #{mask} & #{attribute} == 0
         end
       READER
     end
+
     def bits_accessor attribute, field, bit, bits
       bits_reader attribute, field, bit, bits
       bits_writer attribute, field, bit, bits
       bits_condition attribute, field, bit, bits
     end
     def bits_reader attribute, field, bit, bits
+      mask = ( 2 ** bits - 1 ) << bit
+      self.module_eval <<-READER, __FILE__, __LINE__ + 1
+        def #{field}
+          #{mask} & #{attribute} >> #{bit}
+        end
+      READER
     end
     def bits_writer attribute, field, bit, bits
+      mask = ( 2 ** bits - 1 ) << bit
+      filter = ( 2 ** bits - 1 ) 
+      self.module_eval <<-WRITER, __FILE__, __LINE__ + 1
+        def #{field}= v; 
+          v = v.to_i
+          if v > #{filter}
+            v = #{filter}
+          elsif v < 0
+            v = 0
+          end
+          v = v << #{bit}
+          self.#{attribute} = #{attribute} & ~#{mask} | v
+        end
+      WRITER
     end
-    def bits_condion attribute, field, bit, bits
+    def bits_condition attribute, field, bit, bits
+      mask = ( 2 ** bits - 1 ) << bit
+      self.module_eval <<-READER, __FILE__, __LINE__ + 1
+        def #{field}?
+          #{mask} & #{attribute} >> #{bit}
+        end
+      READER
     end
+
   end
 
 end
